@@ -71,11 +71,23 @@ single peg stops a layer from rotating. Strategy, in priority order:
 Tiny end-cap layers too small to fit a hole are aligned by eye at glue-up.
 See `references/pipeline-notes.md` for the full rationale.
 
+**Polar caps** — at the very top and bottom the layers shrink to fiddly slivers
+that just get sanded into the dome anyway. Pass `--min-layer-area <mm2>` to drop
+those tiny end caps (top/bottom only; interior layers are never removed), leaving
+1–2 solid caps you round off by sanding. Choose the threshold from the printed
+per-layer areas — enough to remove the specks, not so much that the form goes
+flat. Cutting a 9 mm² "layer" is pointless; dropping half the body is not.
+
 ### 4. Appendages (fins / ears / tails / wings)
 Thin parts that slicing spits out as islands, or that would be fragile as
 layers, are made as **separate flat pieces glued on after sanding**. The slicer
 exports each dropped island to `dxf/islands/`. Decide per part:
 - flat glue-on (simplest);
+- **side fins (pectoral)** → `scripts/fin_slot.py`: cuts a notch into one
+  layer's left/right edge and makes tabbed fins that insert into that **seam**.
+  In a stacked body the layer seams are natural horizontal slots, so this hides
+  the joint, self-aligns, and holds far better than surface glue. Preferred for
+  side fins/flippers.
 - inserted into a slot for a hidden, stronger joint;
 - **angled** (e.g. a whale fluke that tilts up) → use `scripts/hinge_appendage.py`
   to make a living-hinge fold part (glue root flat, fold up, lock with a gusset)
@@ -100,10 +112,11 @@ sanding step is what creates the product feel — always call it out.
 
 | Script | Does | Main args |
 |---|---|---|
-| `scripts/slice_stack.py` | STL → layer DXFs + square holes + islands + `_layers.pkl` | `--stl --out --size --board --axis --hole` |
+| `scripts/slice_stack.py` | STL → layer DXFs + square holes + islands + `_layers.pkl` | `--stl --out --size --board --axis --hole --min-layer-area` |
 | `scripts/preview_stack.py` | `_layers.pkl` → preview SVG | `--out` |
 | `scripts/assembly_guide.py` | `_layers.pkl` → assembly HTML | `--out` |
-| `scripts/hinge_appendage.py` | living-hinge fold part + gusset (+ slot in a layer) | `--out --angle --width` |
+| `scripts/fin_slot.py` | side fin as tab-into-seam (notch a layer + PEC-R/L pieces) | `--out --layer --xfrac --tab-w` |
+| `scripts/hinge_appendage.py` | living-hinge fold part + gusset (angled appendage, e.g. an up-tilted fluke) | `--out --angle --span` |
 
 All scripts take `--out <project_dir>` and share `_layers.pkl` in it. Run
 `python <script> --help` for the full option list. Prefer editing args over

@@ -26,12 +26,18 @@ def parse():
     ap.add_argument("--wall", type=float, default=2.0, help="min wall around hole mm")
     ap.add_argument("--margin", type=float, default=5.0, help="dxf margin mm")
     ap.add_argument("--min-island", type=float, default=25.0, help="min island area mm^2 to export")
+    ap.add_argument("--min-layer-area", type=float, default=0.0,
+                    help="drop tiny polar cap layers below this area mm^2 (top/bottom only); "
+                         "avoids fiddly slivers — sand the dome from 1-2 caps instead. 0=keep all")
     return ap.parse_args()
 
 def main():
     a = parse()
+    import glob
     DXF = os.path.join(a.out, "dxf"); ISL = os.path.join(DXF, "islands")
     os.makedirs(ISL, exist_ok=True)
+    for f in glob.glob(os.path.join(DXF, "*.dxf")) + glob.glob(os.path.join(ISL, "*.dxf")):
+        os.remove(f)                                   # clear stale layers from a previous run
     CLR = a.hole/2 + a.wall
     AX = a.axis
     IN = [i for i in range(3) if i != AX]        # in-plane axes
@@ -68,8 +74,26 @@ def main():
         return res
 
     ts = [bmin[AX] + (k+0.5)*a.board for k in range(N)]
-    labels = [f"{k+1:02d}" for k in range(N)]
-    LAY = [(lab, t, polys_at(t)) for lab, t in zip(labels, ts)]
+    LAY = [(None, t, polys_at(t)) for t in ts]
+
+    # Optional: drop tiny polar-cap layers at the top/bottom ends (fiddly slivers
+    # that get sanded into the dome anyway). Only trims contiguous small runs at
+    # the ENDS — never removes an interior layer — so a waisted shape stays intact.
+    if a.min_layer_area > 0:
+        area = [sum(p.area for p in ps) for _, _, ps in LAY]
+        keep = [True]*len(LAY)
+        for i in range(len(LAY)-1, -1, -1):
+            if area[i] < a.min_layer_area: keep[i] = False
+            else: break
+        for i in range(len(LAY)):
+            if area[i] < a.min_layer_area: keep[i] = False
+            else: break
+        dropped = keep.count(False)
+        LAY = [L for L, k in zip(LAY, keep) if k]
+        print(f"min-layer-area {a.min_layer_area}: dropped {dropped} polar-cap layers -> {len(LAY)} kept")
+
+    LAY = [(f"{i+1:02d}", t, ps) for i, (_, t, ps) in enumerate(LAY)]   # renumber bottom-up
+    N = len(LAY)
     geom = [unary_union(ps) if ps else Polygon() for _, _, ps in LAY]
 
     # ---- square alignment holes: anchor(max coverage) + spread(forward), centerline ----
