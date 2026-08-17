@@ -97,7 +97,10 @@ exports each dropped island to `dxf/islands/`. Decide per part:
 ### 5. Preview and confirm
 Run `scripts/preview_stack.py` to render an SVG: top contour overlay, side/front
 **stepped** elevation (what the raw glued stack looks like before sanding), and
-per-layer thumbnails (multi-region layers flagged). Show it to the user. If the
+per-layer thumbnails (multi-region layers flagged). For a friendlier check, also
+run `scripts/render_stack3d.py` for an **isometric 3D mock-up** (the terraced
+stack from two 3/4 angles — closest to how the glued piece will look before
+sanding). Show these to the user. If the
 shape is wrong, they regenerate the 3D model (e.g. in Meshy) and you re-slice —
 the pipeline is unchanged and fast. Do not proceed to a final cut sheet until
 they approve the shape.
@@ -113,7 +116,8 @@ sanding step is what creates the product feel — always call it out.
 | Script | Does | Main args |
 |---|---|---|
 | `scripts/slice_stack.py` | STL → layer DXFs + square holes + islands + `_layers.pkl` | `--stl --out --size --board --axis --hole --min-layer-area` |
-| `scripts/preview_stack.py` | `_layers.pkl` → preview SVG | `--out` |
+| `scripts/preview_stack.py` | `_layers.pkl` → preview SVG (contours + elevations + thumbnails) | `--out` |
+| `scripts/render_stack3d.py` | `_layers.pkl` → isometric 3D mock-up SVG (terraced stack, 2 angles) | `--out` |
 | `scripts/assembly_guide.py` | `_layers.pkl` → assembly HTML | `--out` |
 | `scripts/fin_slot.py` | side fin as tab-into-seam (notch a layer + PEC-R/L pieces) | `--out --layer --xfrac --tab-w` |
 | `scripts/hinge_appendage.py` | living-hinge fold part + gusset (angled appendage, e.g. an up-tilted fluke) | `--out --angle --span` |
